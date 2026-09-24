@@ -77,13 +77,13 @@ function supabaseConnectOrigins(): string {
 
 export function buildContentSecurityPolicy(isDev: boolean): string {
   const scriptSrc = isDev
-    ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
-    : "script-src 'self' 'unsafe-inline'";
+    ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com"
+    : "script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com";
 
   const supabaseOrigin = supabaseConnectOrigins();
   const connectSrc = isDev
-    ? `connect-src 'self' ws: wss: http: https: ${supabaseOrigin}`
-    : `connect-src 'self' ${supabaseOrigin}`;
+    ? `connect-src 'self' ws: wss: http: https: ${supabaseOrigin} https://vitals.vercel-insights.com`
+    : `connect-src 'self' ${supabaseOrigin} https://vitals.vercel-insights.com`;
 
   return [
     "default-src 'self'",

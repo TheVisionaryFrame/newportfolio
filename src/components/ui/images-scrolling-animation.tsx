@@ -1,6 +1,4 @@
 import { ArrowUpRight } from "lucide-react";
-import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
-import { useRef } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -33,26 +31,12 @@ export function ImagesScrollingAnimation({
   items = fallbackItems,
   className,
 }: ImagesScrollingAnimationProps) {
-  const prefersReducedMotion = useReducedMotion();
-  const listRef = useRef<HTMLDivElement>(null);
   const safeItems = items.length > 0 ? items : fallbackItems;
-  const { scrollYProgress } = useScroll({
-    target: listRef,
-    offset: ["start start", "end end"],
-  });
 
   return (
-    <div ref={listRef} className={cn("flex flex-col", className)}>
+    <div className={cn("flex flex-col", className)}>
       {safeItems.map((item, index) => (
-        <StackCard
-          key={`${item.title}-${index}`}
-          item={item}
-          index={index}
-          total={safeItems.length}
-          isLast={index === safeItems.length - 1}
-          progress={scrollYProgress}
-          reducedMotion={Boolean(prefersReducedMotion)}
-        />
+        <StackCard key={`${item.title}-${index}`} item={item} index={index} isLast={index === safeItems.length - 1} />
       ))}
     </div>
   );
@@ -61,42 +45,21 @@ export function ImagesScrollingAnimation({
 function StackCard({
   item,
   index,
-  total,
   isLast,
-  progress,
-  reducedMotion,
 }: {
   item: ImagesScrollingAnimationItem;
   index: number;
-  total: number;
   isLast: boolean;
-  progress: ReturnType<typeof useScroll>["scrollYProgress"];
-  reducedMotion: boolean;
 }) {
-  const activeIndex = useTransform(progress, (value) => value * Math.max(total - 1, 1));
-  const scale = useTransform(activeIndex, (active) => {
-    if (reducedMotion) return 1;
-    const distance = Math.min(Math.abs(active - index), 1);
-    return 1 - distance * 0.48;
-  });
-  const y = useTransform(activeIndex, (active) => {
-    if (reducedMotion) return 0;
-    const passed = Math.min(Math.max(active - index, 0), 1);
-    return -passed * 40;
-  });
-
   const card = (
-    <motion.article
-      style={reducedMotion ? undefined : { scale, y }}
-      className="group flex w-full origin-top flex-col overflow-hidden rounded-[1.5rem] border border-border bg-ink shadow-[0_36px_120px_-70px_var(--color-paper)] md:rounded-[2rem]"
-    >
+    <article className="video-stack-card flex w-full flex-col overflow-hidden rounded-[1.5rem] border border-border bg-ink md:rounded-[2rem]">
       <div className="flex items-center justify-center bg-ink p-4 sm:p-6 md:p-8">
         <img
           src={item.src}
           alt={item.alt ?? item.title}
           loading="lazy"
           decoding="async"
-          className="max-h-[52vh] w-full rounded-lg object-contain sm:rounded-xl"
+          className="max-h-[46vh] w-full rounded-lg object-contain sm:rounded-xl"
         />
       </div>
 
@@ -120,7 +83,7 @@ function StackCard({
           </span>
         </div>
       </div>
-    </motion.article>
+    </article>
   );
 
   const framed = item.href ? (

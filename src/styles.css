@@ -528,3 +528,28 @@
 @media (max-width: 48rem) {
   .site-shell { width: min(100% - 2rem, 80rem); }
 }
+
+.video-stack-card {
+  transform-origin: top center;
+  backface-visibility: hidden;
+}
+
+@supports (animation-timeline: view()) {
+  .video-stack-card {
+    animation: video-stack-shrink linear both;
+    animation-timeline: view();
+    animation-range: exit 0% exit 100%;
+  }
+}
+
+@keyframes video-stack-shrink {
+  to {
+    transform: scale(0.84);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .video-stack-card {
+    animation: none;
+  }
+}
