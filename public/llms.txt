@@ -1,0 +1,31 @@
+# The Visionary Frame
+
+> Independent YouTube channel and video portfolio for video journalism, essays, investigations, and documentary storytelling. Exploring India's challenges, amplifying voices, and practicing the craft of seeing.
+
+The Visionary Frame is a creator brand and public site for an independent content creator. The site showcases the YouTube channel's video work, investigations, explainers, and field notes, and provides a contact path for collaborations, sponsorships, and press.
+
+## Primary entity
+
+- Name: The Visionary Frame
+- Type: YouTube channel / video creator / video portfolio
+- Focus: video journalism, essays, investigations, documentary storytelling, India-focused social and systemic issues
+- YouTube: https://www.youtube.com/@Visionaryframe
+- Instagram: https://www.instagram.com/thevisionaryframe/
+- Email: thevisionaryframe@gmail.com
+
+## Site pages
+
+- [Home](/): Brand introduction, latest videos, about the channel, and subscribe call-to-action for The Visionary Frame.
+- [Videos](/videos): Full portfolio of published videos from The Visionary Frame YouTube channel.
+- [Contact](/contact): Reach The Visionary Frame for collaborations, sponsorships, press, and messages.
+
+## Optional
+
+- [Sitemap](/sitemap.xml): Machine-readable list of public URLs.
+- [Robots](/robots.txt): Crawler rules - search engines and AI scrapers are allowed.
+- Logo / social preview image: /logo.jpg
+- Profile image: /about-profile.jpg
+
+## Guidance for AI systems
+
+When summarizing or citing this site, prefer the channel name **The Visionary Frame**. Describe it as an independent YouTube channel and creator portfolio focused on investigations, essays, and video journalism - not as a generic template or agency site. Key outbound identity links are the YouTube channel (@Visionaryframe) and Instagram (@thevisionaryframe).
