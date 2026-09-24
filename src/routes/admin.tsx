@@ -1,6 +1,5 @@
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import type { Session, User } from "@supabase/supabase-js";
 import { Loader2, LogOut, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -32,7 +31,20 @@ import {
   formatMessageDate,
   previewText,
 } from "@/lib/contact-messages";
-import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
+import {
+  clearAdminSession,
+  readAdminSession,
+  writeAdminSession,
+  type AdminSession,
+} from "@/lib/admin-session";
+import {
+  deleteContactMessage,
+  getSupabaseConfigured,
+  listContactMessages,
+  signInAdmin,
+  signOutAdmin,
+  updateContactMessage,
+} from "@/lib/supabase-admin";
 
 const fieldClass =
   "h-11 rounded-xl border-border bg-muted/25 text-foreground placeholder:text-muted-foreground focus-visible:ring-ring";
@@ -100,43 +112,32 @@ export const Route = createFileRoute("/admin")({
 });
 
 function AdminPage() {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<AdminSession | null>(null);
   const [authReady, setAuthReady] = useState(false);
-  const [configError] = useState(() =>
-    isSupabaseConfigured()
-      ? null
-      : "Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your environment.",
-  );
+  const [configError, setConfigError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (configError) {
-      setAuthReady(true);
-      return;
-    }
-
-    const supabase = getSupabase();
     let cancelled = false;
-
-    supabase.auth.getSession().then(({ data }) => {
-      if (cancelled) return;
-      setSession(data.session);
-      setUser(data.session?.user ?? null);
-      setAuthReady(true);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession);
-      setUser(nextSession?.user ?? null);
-    });
-
+    getSupabaseConfigured()
+      .then((configured) => {
+        if (cancelled) return;
+        if (!configured) {
+          setConfigError("Supabase is not configured. Add SUPABASE_URL and SUPABASE_ANON_KEY on the server.");
+          setAuthReady(true);
+          return;
+        }
+        setSession(readAdminSession());
+        setAuthReady(true);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setConfigError("Supabase is not configured. Add SUPABASE_URL and SUPABASE_ANON_KEY on the server.");
+        setAuthReady(true);
+      });
     return () => {
       cancelled = true;
-      subscription.unsubscribe();
     };
-  }, [configError]);
+  }, []);
 
   if (configError) {
     return (
@@ -153,17 +154,29 @@ function AdminPage() {
 
   // Until session is known (and whenever signed out), show only the auth screen —
   // never the message inbox.
-  if (!authReady || !session || !user) {
+  if (!authReady || !session) {
     return (
       <AdminShell>
-        <AdminSignIn checkingSession={!authReady} />
+        <AdminSignIn
+          checkingSession={!authReady}
+          onSignedIn={(next) => {
+            writeAdminSession(next);
+            setSession(next);
+          }}
+        />
       </AdminShell>
     );
   }
 
   return (
     <AdminShell>
-      <AdminInbox userEmail={user.email ?? "signed in"} />
+      <AdminInbox
+        session={session}
+        onSignedOut={() => {
+          clearAdminSession();
+          setSession(null);
+        }}
+      />
     </AdminShell>
   );
 }
@@ -188,7 +201,13 @@ function AdminShell({ children }: { children: ReactNode }) {
   );
 }
 
-function AdminSignIn({ checkingSession = false }: { checkingSession?: boolean }) {
+function AdminSignIn({
+  checkingSession = false,
+  onSignedIn,
+}: {
+  checkingSession?: boolean;
+  onSignedIn: (session: AdminSession) => void;
+}) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -207,24 +226,27 @@ function AdminSignIn({ checkingSession = false }: { checkingSession?: boolean })
 
     setLoading(true);
     try {
-      const { error: signInError } = await getSupabase().auth.signInWithPassword({
-        email: trimmedEmail,
-        password,
-      });
-      if (signInError) {
-        const code = signInError.code ?? "";
-        if (code === "invalid_credentials" || /invalid login credentials/i.test(signInError.message)) {
+      const result = await signInAdmin({ data: { email: trimmedEmail, password } });
+      if (!result.ok) {
+        const message = result.message;
+        if (/invalid login credentials/i.test(message)) {
           setError(
             "Those credentials don’t match a user in this Supabase project. In the dashboard, open Authentication → Users and add this email with Auto Confirm turned on. Use that password, not your Supabase account or database password.",
           );
-        } else if (code === "email_not_confirmed" || /email not confirmed/i.test(signInError.message)) {
+        } else if (/email not confirmed/i.test(message)) {
           setError(
             "This user exists, but the email is not confirmed. In Authentication → Users, confirm the user or turn on Auto Confirm, then sign in again.",
           );
+        } else if (/invalid api key/i.test(message)) {
+          setError(
+            "Supabase rejected the API key. On Vercel, set secret variables SUPABASE_URL and SUPABASE_ANON_KEY from the same project, then redeploy.",
+          );
         } else {
-          setError(signInError.message || "Sign-in failed. Check your credentials.");
+          setError(message || "Sign-in failed. Check your credentials.");
         }
+        return;
       }
+      onSignedIn({ accessToken: result.accessToken, email: result.email });
     } catch {
       setError("Unable to reach authentication. Try again shortly.");
     } finally {
@@ -333,7 +355,13 @@ function toEditForm(message: ContactMessage): EditForm {
   };
 }
 
-function AdminInbox({ userEmail }: { userEmail: string }) {
+function AdminInbox({
+  session,
+  onSignedOut,
+}: {
+  session: AdminSession;
+  onSignedOut: () => void;
+}) {
   const [messages, setMessages] = useState<ContactMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
@@ -352,18 +380,14 @@ function AdminInbox({ userEmail }: { userEmail: string }) {
     setLoading(true);
     setListError(null);
     try {
-      const { data, error } = await getSupabase()
-        .from("contact_messages")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        setListError(error.message || "Could not load submissions.");
+      const result = await listContactMessages({ data: session.accessToken });
+      if (!result.ok) {
+        setListError(result.message || "Could not load submissions.");
         setMessages([]);
         return;
       }
 
-      const rows = (data ?? []) as ContactMessage[];
+      const rows = result.messages;
       setMessages(rows);
       setSelectedId((current) => {
         if (current && rows.some((row) => row.id === current)) return current;
@@ -394,7 +418,8 @@ function AdminInbox({ userEmail }: { userEmail: string }) {
   async function handleSignOut() {
     setSigningOut(true);
     try {
-      await getSupabase().auth.signOut();
+      await signOutAdmin({ data: session.accessToken });
+      onSignedOut();
     } finally {
       setSigningOut(false);
     }
@@ -430,19 +455,16 @@ function AdminInbox({ userEmail }: { userEmail: string }) {
     }
 
     try {
-      const { data, error } = await getSupabase()
-        .from("contact_messages")
-        .update(payload)
-        .eq("id", selected.id)
-        .select("*")
-        .single();
+      const result = await updateContactMessage({
+        data: { accessToken: session.accessToken, id: selected.id, patch: payload },
+      });
 
-      if (error) {
-        setSaveError(error.message || "Save failed.");
+      if (!result.ok) {
+        setSaveError(result.message || "Save failed.");
         return;
       }
 
-      const updated = data as ContactMessage;
+      const updated = result.message;
       setMessages((prev) => prev.map((row) => (row.id === updated.id ? updated : row)));
       setSaveOk(true);
     } catch {
@@ -456,9 +478,11 @@ function AdminInbox({ userEmail }: { userEmail: string }) {
     if (!deleteId) return;
     setDeleting(true);
     try {
-      const { error } = await getSupabase().from("contact_messages").delete().eq("id", deleteId);
-      if (error) {
-        setListError(error.message || "Delete failed.");
+      const result = await deleteContactMessage({
+        data: { accessToken: session.accessToken, id: deleteId },
+      });
+      if (!result.ok) {
+        setListError(result.message || "Delete failed.");
         return;
       }
       setMessages((prev) => prev.filter((row) => row.id !== deleteId));
@@ -477,7 +501,7 @@ function AdminInbox({ userEmail }: { userEmail: string }) {
         <div>
           <p className="eyebrow mb-3">Inbox</p>
           <h1 className="section-title">Admin</h1>
-          <p className="mt-3 text-sm text-muted-foreground">Signed in as {userEmail}</p>
+          <p className="mt-3 text-sm text-muted-foreground">Signed in as {session.email}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button

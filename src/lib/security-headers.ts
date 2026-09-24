@@ -56,10 +56,10 @@ function isHttpsRequest(request: Request): boolean {
  */
 function supabaseConnectOrigins(): string {
   const fromProcess =
-    typeof process !== "undefined" ? process.env["VITE_SUPABASE_URL"]?.trim() : undefined;
+    typeof process !== "undefined" ? process.env["SUPABASE_URL"]?.trim() : undefined;
   const fromImportMeta =
     typeof import.meta !== "undefined"
-      ? (import.meta.env as { VITE_SUPABASE_URL?: string } | undefined)?.["VITE_SUPABASE_URL"]?.trim()
+      ? (import.meta.env as { SUPABASE_URL?: string } | undefined)?.["SUPABASE_URL"]?.trim()
       : undefined;
   const fromEnv = fromProcess || fromImportMeta || "";
 
@@ -71,7 +71,7 @@ function supabaseConnectOrigins(): string {
     }
   }
 
-  // Allow any Supabase project host until VITE_SUPABASE_URL is set at build time.
+  // Browser calls stay on this site. Server functions use SUPABASE_URL.
   return "https://*.supabase.co";
 }
 

@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { profanityError, validateEmail, validateName } from "@/lib/contact-validation";
+import { emptyToNull } from "@/lib/contact-messages";
+import { submitContactMessage } from "@/lib/supabase-admin";
 
 const INQUIRY_TYPES = [
   "Collaboration",
@@ -187,7 +189,7 @@ function ContactPage() {
     }, 0);
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const nextErrors = validate();
     setErrors(nextErrors);
@@ -197,11 +199,26 @@ function ContactPage() {
       return;
     }
 
-    setForm((prev) => ({
-      ...prev,
-      name: prev.name.trim(),
-      email: prev.email.trim().toLowerCase(),
-    }));
+    const result = await submitContactMessage({
+      data: {
+        name: form.name.trim(),
+        email: form.email.trim().toLowerCase(),
+        inquiry_type: form.inquiryType,
+        message: form.message.trim(),
+        social_handle: emptyToNull(form.socialHandle),
+        preferred_contact: emptyToNull(form.preferredContact),
+        brand_name: emptyToNull(form.brandName),
+        website: emptyToNull(form.website),
+        budget_range: emptyToNull(form.budgetRange),
+        campaign_goal: emptyToNull(form.campaignGoal),
+        timeline: emptyToNull(form.timeline),
+      },
+    });
+
+    if (!result.ok) {
+      setErrors({ message: result.message || "Could not send your message." });
+      return;
+    }
 
     setSubmitted(true);
   }
