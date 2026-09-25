@@ -114,6 +114,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:image:alt", content: `${SITE_NAME} logo` },
       // Defense-in-depth; primary policy is the Referrer-Policy response header.
       { name: "referrer", content: "strict-origin-when-cross-origin" },
+      { name: "google-site-verification", content: "google70dbf75b393ec4bb" },
     ],
     links: [
       {

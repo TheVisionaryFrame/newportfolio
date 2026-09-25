@@ -9,6 +9,7 @@ import {
   youtubeThumbUrl,
   youtubeWatchUrl,
 } from "@/data/videos";
+import { absoluteUrl } from "@/lib/site";
 
 export const Route = createFileRoute("/videos")({
   head: () => ({
@@ -25,6 +26,7 @@ export const Route = createFileRoute("/videos")({
       },
       { property: "og:type", content: "website" },
     ],
+    links: [{ rel: "canonical", href: absoluteUrl("/videos") }],
   }),
   component: VideosPage,
 });

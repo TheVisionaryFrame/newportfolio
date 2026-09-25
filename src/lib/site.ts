@@ -1,5 +1,5 @@
 /** Canonical origin for absolute SEO URLs (sitemap, OG, JSON-LD). Update when a custom domain is connected. */
-import { YOUTUBE_CHANNEL_URL } from "@/data/videos";
+import { videos, YOUTUBE_CHANNEL_URL, youtubeThumbUrl, youtubeWatchUrl } from "@/data/videos";
 
 export const SITE_URL = "https://thevisionaryframe.com";
 
@@ -62,6 +62,27 @@ export function buildSiteJsonLd() {
           url: OG_IMAGE_URL,
         },
         sameAs: [YOUTUBE_CHANNEL_URL, INSTAGRAM_URL],
+      },
+      {
+        "@type": "ItemList",
+        "@id": `${SITE_URL}/videos#videos`,
+        name: `${SITE_NAME} videos`,
+        itemListOrder: "https://schema.org/ItemListOrderAscending",
+        numberOfItems: videos.length,
+        itemListElement: videos.map((video, index) => ({
+          "@type": "ListItem",
+          position: index + 1,
+          url: youtubeWatchUrl(video.videoId),
+          item: {
+            "@type": "VideoObject",
+            name: video.title,
+            description: video.description,
+            thumbnailUrl: youtubeThumbUrl(video.videoId),
+            uploadDate: video.publishedAt,
+            url: youtubeWatchUrl(video.videoId),
+            publisher: { "@id": `${SITE_URL}/#organization` },
+          },
+        })),
       },
     ],
   };

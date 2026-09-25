@@ -3,6 +3,7 @@
 
 User-agent: Googlebot
 Allow: /
+Disallow: /admin
 
 User-agent: Googlebot-Image
 Allow: /
@@ -97,9 +98,10 @@ Allow: /
 User-agent: YouBot
 Allow: /
 
-# Default: allow everything
+# Default: allow public pages, keep the admin inbox out of search results
 User-agent: *
 Allow: /
+Disallow: /admin
 
 # AI-readable site summary
 # See also: /llms.txt

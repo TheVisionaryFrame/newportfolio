@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { profanityError, validateEmail, validateName } from "@/lib/contact-validation";
 import { emptyToNull } from "@/lib/contact-messages";
 import { submitContactMessage } from "@/lib/supabase-admin";
+import { absoluteUrl } from "@/lib/site";
 
 const INQUIRY_TYPES = [
   "Collaboration",
@@ -84,6 +85,7 @@ export const Route = createFileRoute("/contact")({
       },
       { property: "og:type", content: "website" },
     ],
+    links: [{ rel: "canonical", href: absoluteUrl("/contact") }],
   }),
   component: ContactPage,
 });
